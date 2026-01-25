@@ -5,7 +5,8 @@ Stateless MCP Server for Notion API
 
 import logging
 import argparse
-from typing import Dict
+from typing import Dict, List
+from typing import Optional
 
 import requests
 from fastmcp import FastMCP
@@ -56,7 +57,7 @@ def _make_request(
         )
         result = response.json()
 
-        if response.status_code != 200:
+        if not (200 <= response.status_code < 300):
             logger.error(f"Notion API error: {result}")
             return {
                 "error": result.get("message", "Unknown error"),
@@ -70,7 +71,7 @@ def _make_request(
         return {"error": str(e)}
 
 
-# ============== MCP TOOLS ==============
+# ============== Read Operations ==============
 
 
 @mcp.tool(
@@ -129,6 +130,82 @@ def get_page(oauth_token: str, page_id: str) -> Dict:
         logger.error(f"Failed to retrieve page: {page_id}: {result.get('error')}")
     else:
         logger.info(f"Successfully retrieved page: {page_id}")
+
+    return result
+
+
+############################# Write Operations ################################
+@mcp.tool(
+    name="create_page",
+    description="Create a new page in a database or under a parent page",
+)
+def create_page(
+    oauth_token: str,
+    parent_id: str,
+    parent_type: str = "page_id",
+    title: str = "Untitled",
+    properties: Optional[Dict] = None,
+    children: Optional[List] = None,
+    icon: Optional[Dict] = None,
+    cover: Optional[Dict] = None,
+) -> Dict:
+    """
+    Create a new page in a database or under a parent page.
+
+    Args:
+        oauth_token: User's Notion OAuth access token
+        parent_id: The ID of the parent database or page
+        parent_type: The type of the parent ("database_id" or "page_id"), defaults to "page_id"
+        title: The title of the new page (used when parent is a page)
+        properties: A dictionary of properties for the new page (required for database pages)
+        children: Optional list of child blocks to include in the new page
+        icon: Optional icon for the page (emoji or external URL)
+        cover: Optional cover image for the page (external URL or uploaded file)
+
+    Returns:
+        A dictionary containing the newly created page details or an error message.
+    """
+    logger.info(
+        f"[create_page] parent_id={parent_id}, parent_type={parent_type}, title={title}"
+    )
+
+    if parent_type not in ["page_id", "database_id"]:
+        logger.error(f"Invalid parent_type: {parent_type}")
+        return {"error": "parent_type must be either 'page_id' or 'database_id'"}
+
+    body = {"parent": {parent_type: parent_id, "type": parent_type}}
+
+    if parent_type == "page_id":
+        # When creating under a page, use title property
+        if not properties:
+            properties = {
+                "title": {"title": [{"type": "text", "text": {"content": title}}]}
+            }
+        body["properties"] = properties
+    elif parent_type == "database_id":
+        # When creating in a database, properties are required
+        if not properties:
+            logger.error("properties are required when creating a page in a database")
+            return {
+                "error": "properties are required when parent_type is 'database_id'"
+            }
+        body["properties"] = properties
+
+    if children:
+        body["children"] = children
+
+    if icon:
+        body["icon"] = icon
+
+    if cover:
+        body["cover"] = cover
+
+    result = _make_request("POST", "/v1/pages", oauth_token, body=body)
+
+    if "error" in result:
+        logger.error(f"Failed to create page: {result.get('error')}")
+    else:
+        logger.info(f"Successfully created page: {result.get('id')}")
 
     return result
 
