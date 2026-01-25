@@ -1,0 +1,39 @@
+# Ignore the virtual environment
+venv/
+__pycache__/
+.venv/
+
+# Ignore the build and distribution directories
+dist/
+build/
+
+# Ignore the IDE or editor-specific files
+.idea/
+.vscode/
+
+# Ignore the logs and temporary files
+*.log
+*.pyc
+*.swp
+*.swo
+.DS_Store
+
+# Ignore the specific files and directories
+*.env
+*.pid
+*.session
+*.db
+*.sqlite3
+
+# Ignore the specific file types
+*.pdf
+*.jpg
+*.png
+*.mp4
+*.mp3
+
+# Ignore the specific directories
+node_modules/
+mcp_server/logs/
+mcp_server/static/
+mcp_server/templates/

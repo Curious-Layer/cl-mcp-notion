@@ -1,6 +1,6 @@
 """
-MCP Server for Notion API
-Provides access to Notion operations through Model Context Protocol
+Stateless MCP Server for Notion API
+
 """
 
 import logging
@@ -14,7 +14,7 @@ from fastmcp import FastMCP
 NOTION_API_BASE = "https://api.notion.com"
 NOTION_VERSION = "2025-09-03"
 
-#  logging
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -27,7 +27,7 @@ mcp = FastMCP("Notion MCP Server")
 
 
 def _get_headers(oauth_token: str) -> Dict[str, str]:
-    """Create headers for Notion API requests"""
+    """Create headers for Notion API requests - stateless per request"""
     return {
         "Authorization": f"Bearer {oauth_token}",
         "Notion-Version": NOTION_VERSION,
@@ -35,7 +35,42 @@ def _get_headers(oauth_token: str) -> Dict[str, str]:
     }
 
 
-# Define MCP Tools
+def _make_request(
+    method: str,
+    endpoint: str,
+    oauth_token: str,
+    body: Dict | None = None,
+    params: Dict | None = None,
+) -> Dict:
+    """Generic request handler for Notion API"""
+    headers = _get_headers(oauth_token)
+    url = f"{NOTION_API_BASE}{endpoint}"
+
+    try:
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            json=body,
+            params=params,
+        )
+        result = response.json()
+
+        if response.status_code != 200:
+            logger.error(f"Notion API error: {result}")
+            return {
+                "error": result.get("message", "Unknown error"),
+                "code": result.get("code"),
+                "status": response.status_code,
+            }
+        return result
+
+    except Exception as e:
+        logger.error(f"Request error: {e}")
+        return {"error": str(e)}
+
+
+# ============== MCP TOOLS ==============
 
 
 @mcp.tool(
@@ -50,72 +85,45 @@ def search_notion(
     start_cursor: str | None = None,
 ) -> Dict:
     """
-    Search Notion pages and databases by title.
+    Search Notion pages and databases.
 
     Args:
-        oauth_token: The user's Notion OAuth access token
-        query: Search query string (searches titles)
-        filter_type: Filter by object type - "page" or "database" (optional)
-        page_size: Number of results to return (max 100)
-        start_cursor: Pagination cursor for next page of results
+        oauth_token: User's Notion OAuth access token (from your DB)
+        query: Search query string
+        filter_type: "page" or "database" (optional)
+        page_size: Results per page (max 100)
+        start_cursor: Pagination cursor
     """
-    logger.info(f"Executing search_notion with query: {query}")
-    try:
-        headers = _get_headers(oauth_token)
+    logger.info(f"[search_notion] query='{query}'")
 
-        body = {
-            "query": query,
-            "page_size": min(page_size, 100),
-        }
+    body = {"query": query, "page_size": min(page_size, 100)}
 
-        if filter_type and filter_type in ["page", "database"]:
-            body["filter"] = {"property": "object", "value": filter_type}
+    if filter_type in ["page", "data_source"]:
+        body["filter"] = {"property": "object", "value": filter_type}
 
-        if start_cursor:
-            body["start_cursor"] = start_cursor
+    if start_cursor:
+        body["start_cursor"] = start_cursor
 
-        response = requests.post(
-            f"{NOTION_API_BASE}/v1/search",
-            headers=headers,
-            json=body,
-        )
-
-        result = response.json()
-
-        if response.status_code != 200:
-            logger.error(f"Notion API error: {result}")
-            return {
-                "error": result.get("message", "Unknown error"),
-                "code": result.get("code"),
-            }
-
-        logger.info(f"Found {len(result.get('results', []))} results")
-        return result
-
-    except Exception as e:
-        logger.error(f"Error in search_notion: {e}")
-        return {"error": str(e)}
+    return _make_request("POST", "/v1/search", oauth_token, body=body)
 
 
-# Function for parsing the cmd-line arguments
+# Function for parsing cmd-line arguments
 def parse_args():
     parser = argparse.ArgumentParser(description="Notion MCP Server")
     parser.add_argument(
         "-t",
         "--transport",
-        help="Transport method for MCP (Allowed Values: 'stdio', 'sse', or 'streamable-http')",
+        help="Transport method: 'stdio', 'sse', or 'streamable-http'",
         default=None,
     )
-    parser.add_argument("--host", help="Host to bind the server to", default=None)
-    parser.add_argument(
-        "--port", type=int, help="Port to bind the server to", default=None
-    )
+    parser.add_argument("--host", help="Host to bind to", default=None)
+    parser.add_argument("--port", type=int, help="Port to bind to", default=None)
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     logger.info("=" * 60)
-    logger.info("Notion MCP Server Starting")
+    logger.info("Notion MCP Server Starting (Stateless Multi-User)")
     logger.info("=" * 60)
 
     args = parse_args()
@@ -123,13 +131,10 @@ if __name__ == "__main__":
     run_kwargs = {}
     if args.transport:
         run_kwargs["transport"] = args.transport
-        logger.info(f"Transport: {args.transport}")
     if args.host:
         run_kwargs["host"] = args.host
-        logger.info(f"Host: {args.host}")
     if args.port:
         run_kwargs["port"] = args.port
-        logger.info(f"Port: {args.port}")
 
     try:
         mcp.run(**run_kwargs)
