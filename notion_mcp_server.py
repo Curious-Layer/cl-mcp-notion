@@ -88,7 +88,7 @@ def search_notion(
     Search Notion pages and databases.
 
     Args:
-        oauth_token: User's Notion OAuth access token (from your DB)
+        oauth_token: User's Notion OAuth access token
         query: Search query string
         filter_type: "page" or "database" (optional)
         page_size: Results per page (max 100)
@@ -107,6 +107,32 @@ def search_notion(
     return _make_request("POST", "/v1/search", oauth_token, body=body)
 
 
+@mcp.tool(
+    name="get_page",
+    description="Retrieve a Notion page by ID with properties adn metadata",
+)
+def get_page(oauth_token: str, page_id: str) -> Dict:
+    """
+    Get the page details by notion page ID with properties and metadata.
+    Args:
+        oauth_token: User's Notion OAuth access token
+        page_id: The ID of the page to retrieve
+    Returns:
+        A dictionary containing the page details or an error message if not page not found.
+    """
+
+    logger.info(f"[get_page] page_id='{page_id}'")
+
+    result = _make_request("GET", f"/v1/pages/{page_id}", oauth_token)
+
+    if "error" in result:
+        logger.error(f"Failed to retrieve page: {page_id}: {result.get('error')}")
+    else:
+        logger.info(f"Successfully retrieved page: {page_id}")
+
+    return result
+
+
 # Function for parsing cmd-line arguments
 def parse_args():
     parser = argparse.ArgumentParser(description="Notion MCP Server")
@@ -114,10 +140,10 @@ def parse_args():
         "-t",
         "--transport",
         help="Transport method: 'stdio', 'sse', or 'streamable-http'",
-        default=None,
+        default="streamable-http",
     )
-    parser.add_argument("--host", help="Host to bind to", default=None)
-    parser.add_argument("--port", type=int, help="Port to bind to", default=None)
+    parser.add_argument("--host", help="Host to bind to", default="localhost")
+    parser.add_argument("--port", type=int, help="Port to bind to", default=8000)
     return parser.parse_args()
 
 
