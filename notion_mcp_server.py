@@ -120,8 +120,6 @@ def notion_fetch(
     )
 
 
-
-
 # ============== Write Operations ==============
 
 
@@ -145,7 +143,7 @@ def create_page(
     Args:
         oauth_token: User's Notion OAuth access token
         parent_id: The ID of the parent database or page
-        parent_type: The type of the parent ("database_id" or "page_id"), defaults to "page_id"
+        parent_type: The type of the parent ("data_source_id" or "page_id"), defaults to "page_id"
         title: The title of the new page (used when parent is a page)
         properties: A dictionary of properties for the new page (required for database pages)
         children: Optional list of child blocks to include in the new page

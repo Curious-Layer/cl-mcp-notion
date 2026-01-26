@@ -11,7 +11,7 @@ logger = logging.getLogger("notion-mcp-server")
 def create_page_service(
     oauth_token: str,
     parent_id: str,
-    parent_type: str = "page_id",
+    parent_type: str = "page_id",  # "page_id" or "data_source_id"
     title: str = "Untitled",
     properties: Optional[Dict] = None,
     children: Optional[List] = None,
@@ -22,9 +22,9 @@ def create_page_service(
         f"[create_page_service] parent_id={parent_id}, parent_type={parent_type}, title={title}"
     )
 
-    if parent_type not in ["page_id", "database_id"]:
+    if parent_type not in ["page_id", "data_source_id"]:
         logger.error(f"Invalid parent_type: {parent_type}")
-        return {"error": "parent_type must be either 'page_id' or 'database_id'"}
+        return {"error": "parent_type must be either 'page_id' or 'data_source_id'"}
 
     body = {"parent": {parent_type: parent_id, "type": parent_type}}
 
@@ -34,11 +34,11 @@ def create_page_service(
                 "title": {"title": [{"type": "text", "text": {"content": title}}]}
             }
         body["properties"] = properties
-    elif parent_type == "database_id":
+    elif parent_type == "data_source_id":
         if not properties:
             logger.error("properties are required when creating a page in a database")
             return {
-                "error": "properties are required when parent_type is 'database_id'"
+                "error": "properties are required when parent_type is 'data_source_id'"
             }
         body["properties"] = properties
 
