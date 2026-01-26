@@ -13,6 +13,7 @@ from tools import (
     notion_fetch_service,
     create_page_service,
     update_page_service,
+    get_database_service,
 )
 
 # Configure logging
@@ -139,6 +140,17 @@ def update_page(
         template,
         erase_content,
     )
+
+
+########## Databse Tools ##########
+
+
+@mcp.tool(
+    name="get_database",
+    description="Retrieve a database object by ID with title, parent, and data sources",
+)
+def get_database(oauth_token: str, database_id: str):
+    return get_database_service(oauth_token, database_id)
 
 
 ########## parsing Argus ##########
