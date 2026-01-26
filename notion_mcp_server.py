@@ -12,6 +12,7 @@ from tools import (
     get_page_service,
     notion_fetch_service,
     create_page_service,
+    update_page_service,
 )
 
 # Configure logging
@@ -145,8 +146,8 @@ def create_page(
         parent_id: The ID of the parent database or page
         parent_type: The type of the parent ("data_source_id" or "page_id"), defaults to "page_id"
         title: The title of the new page (used when parent is a page)
-        properties: A dictionary of properties for the new page (required for database pages)
-        children: Optional list of child blocks to include in the new page
+        properties: A dictionary of properties for the new page (required for data source pages)
+        children: A list of child blocks to include in the new page and could be optional
         icon: Optional icon for the page (emoji or external URL)
         cover: Optional cover image for the page (external URL or uploaded file)
 
@@ -156,6 +157,75 @@ def create_page(
     return create_page_service(
         oauth_token, parent_id, parent_type, title, properties, children, icon, cover
     )
+
+
+@mcp.tool(
+    name="update_page",
+    description="Update a Notion page's properties, icon, cover, archive status, or content",
+)
+def update_page(
+    oauth_token: str,
+    page_id: str,
+    properties: dict | None = None,
+    icon: dict | None = None,
+    cover: dict | None = None,
+    archived: bool | None = None,
+    in_trash: bool | None = None,
+    is_locked: bool | None = None,
+    template: dict | None = None,
+    erase_content: bool | None = None,
+):
+    """
+    Update an existing Notion page's properties and metadata.
+
+    This tool allows you to modify page properties, change the icon or cover,
+    archive/restore pages, move to/from trash, lock/unlock editing, and manage templates.
+
+    Args:
+        oauth_token: User's Notion OAuth access token
+        page_id: The ID of the page to update
+        properties: Dictionary of properties to update (must match parent database schema).
+                   Note: Rollup properties cannot be updated. Pass empty dict {} to clear all properties.
+        icon: Icon for the page. Supported formats:
+              - Emoji: {"type": "emoji", "emoji": "🚀"}
+              - External: {"type": "external", "external": {"url": "https://..."}}
+              - File upload: {"type": "file_upload", "file_upload": {"id": "upload_id"}}
+        cover: Cover image for the page. Supported formats:
+               - External: {"type": "external", "external": {"url": "https://..."}}
+               - File upload: {"type": "file_upload", "file_upload": {"id": "upload_id"}}
+        is_locked: Set to True to lock page from UI editing (API can still edit), False to unlock
+        template: Template configuration. Options:
+                 - {"type": "default"} - Use default template
+                 - {"type": "duplicate"} - Duplicate existing template
+        erase_content: Set to True to erase page content (requires template parameter)
+        archived: Set to True to archive the page, False to restore it
+        in_trash: Set to True to move page to trash, False to restore from trash
+
+    Returns:
+        Dictionary containing the updated page details or an error message.
+
+    Note:
+        - A page's parent cannot be changed via this endpoint
+        - At least one parameter must be provided
+        - Rollup properties are read-only and cannot be updated
+        - erase_content only works when template is also provided
+
+    """
+    return update_page_service(
+        oauth_token,
+        page_id,
+        properties,
+        icon,
+        cover,
+        archived,
+        in_trash,
+        is_locked,
+        template,
+        erase_content,
+    )
+
+
+########## parsing Argus ##########
 
 
 def parse_args():
