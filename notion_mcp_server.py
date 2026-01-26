@@ -17,6 +17,7 @@ from tools import (
     query_data_source_service,
     get_data_source_service,
     create_database_service,
+    get_users_service,
 )
 
 # Configure logging
@@ -198,6 +199,21 @@ def create_database(
     return create_database_service(
         oauth_token, parent_id, title, description, properties, is_inline, icon, cover
     )
+
+
+########## User Tools ##########
+
+
+@mcp.tool(
+    name="list_users",
+    description="List all users in the workspace (guests not included)",
+)
+def list_users(
+    oauth_token: str,
+    page_size: int = 100,
+    start_cursor: str | None = None,
+):
+    return get_users_service(oauth_token, page_size, start_cursor)
 
 
 ########## parsing Argus ##########
