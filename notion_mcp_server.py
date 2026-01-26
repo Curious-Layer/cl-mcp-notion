@@ -6,8 +6,13 @@ import logging
 import argparse
 
 from fastmcp import FastMCP
-from tools.read_operations import search_notion_service, get_page_service
-from tools.write_operations import create_page_service
+
+from tools import (
+    search_notion_service,
+    get_page_service,
+    notion_fetch_service,
+    create_page_service,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -69,6 +74,52 @@ def get_page(oauth_token: str, page_id: str):
         A dictionary containing the page details or an error message if page not found.
     """
     return get_page_service(oauth_token, page_id)
+
+
+@mcp.tool(
+    name="notion_fetch",
+    description="Retrieve a Notion page with its full content including all child blocks and properties",
+)
+def notion_fetch(
+    oauth_token: str,
+    page_id: str,
+    include_children: bool = True,
+    recursive: bool = False,
+    max_depth: int = 3,
+    page_size: int = 100,
+    start_cursor: str | None = None,
+):
+    """
+    Fetch complete page data including properties and content blocks.
+
+    This tool retrieves both the page metadata/properties and its child blocks (content).
+    Use this when you need to read the actual content of a page, not just its properties.
+
+    Args:
+        oauth_token: User's Notion OAuth access token
+        page_id: The ID of the page to fetch
+        include_children: Whether to include child blocks (page content), defaults to True
+        recursive: Whether to recursively fetch nested children blocks (e.g., toggle lists, columns), defaults to False
+        max_depth: Maximum recursion depth when recursive=True (prevents infinite loops), defaults to 3
+        page_size: Number of child blocks to retrieve per request (max 100), defaults to 100
+        start_cursor: Pagination cursor for retrieving more child blocks (only used when recursive=False)
+
+    Returns:
+        Dictionary containing page properties, child blocks, and pagination info.
+        When recursive=True, all nested children are included in a 'children' array within each block.
+        When recursive=False, includes 'has_more_children' and 'next_cursor' for pagination.
+    """
+    return notion_fetch_service(
+        oauth_token,
+        page_id,
+        include_children,
+        recursive,
+        max_depth,
+        page_size,
+        start_cursor,
+    )
+
+
 
 
 # ============== Write Operations ==============
