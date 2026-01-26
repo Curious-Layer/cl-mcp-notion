@@ -14,6 +14,7 @@ from tools import (
     create_page_service,
     update_page_service,
     get_database_service,
+    query_data_source_service,
 )
 
 # Configure logging
@@ -151,6 +152,23 @@ def update_page(
 )
 def get_database(oauth_token: str, database_id: str):
     return get_database_service(oauth_token, database_id)
+
+
+@mcp.tool(
+    name="query_data_source",
+    description="Query a data source to get pages with optional filtering and sorting",
+)
+def query_data_source(
+    oauth_token: str,
+    data_source_id: str,
+    filter: dict | None = None,
+    sorts: list | None = None,
+    page_size: int = 100,
+    start_cursor: str | None = None,
+):
+    return query_data_source_service(
+        oauth_token, data_source_id, filter, sorts, page_size, start_cursor
+    )
 
 
 ########## parsing Argus ##########
