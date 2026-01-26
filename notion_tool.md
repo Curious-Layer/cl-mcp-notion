@@ -10,8 +10,8 @@ Core API endpoints to implement as MCP tools:
 | `query_database`     | `/v1/databases/{database_id}/query` | `POST` | Query database with filters and sorts      |
 | `get_block_children` | `/v1/blocks/{block_id}/children`    | `GET`  | Get child blocks (content) of a page/block |
 | `get_comments`       | `/v1/comments`                      | `GET`  | Get comments on a page or block            |
-| `get_users`          | `/v1/users`                         | `GET`  | List users in workspace                    |
-| `get_user`           | `/v1/users/{user_id}`               | `GET`  | Get specific user details                  |
+| `get_users` ✓        | `/v1/users`                         | `GET`  | List users in workspace                    |
+| `get_user` ✓         | `/v1/users/{user_id}`               | `GET`  | Get specific user details                  |
 
 ## Write Operations
 
