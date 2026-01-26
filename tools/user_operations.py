@@ -55,3 +55,26 @@ def get_user_service(oauth_token: str, user_id: str) -> Dict:
         logger.info(f"Successfully retrieved user: {user_name} (type={user_type})")
 
     return result
+
+
+def get_self_service(oauth_token: str) -> Dict:
+    """
+    Returns:
+        A bot user object with owner, workspace_id, workspace_limits, and workspace_name.
+    """
+    logger.info("[get_self_service] Fetching bot user info")
+
+    result = make_notion_request("GET", "/v1/users/me", oauth_token)
+
+    if "error" in result:
+        logger.error(f"Failed to retrieve bot user: {result.get('error')}")
+    else:
+        bot_name = result.get("name", "Unknown Bot")
+        workspace_name = result.get("bot", {}).get(
+            "workspace_name", "Unknown Workspace"
+        )
+        logger.info(
+            f"Successfully retrieved bot: {bot_name} (workspace={workspace_name})"
+        )
+
+    return result

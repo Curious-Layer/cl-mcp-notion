@@ -19,6 +19,7 @@ from tools import (
     create_database_service,
     list_users_service,
     get_user_service,
+    get_self_service,
 )
 
 # Configure logging
@@ -223,6 +224,14 @@ def list_users(
 )
 def get_user(oauth_token: str, user_id: str):
     return get_user_service(oauth_token, user_id)
+
+
+@mcp.tool(
+    name="get_self",
+    description="Retrieve the bot user associated with your API token, including owner and workspace info",
+)
+def get_self(oauth_token: str):
+    return get_self_service(oauth_token)
 
 
 ########## parsing Argus ##########

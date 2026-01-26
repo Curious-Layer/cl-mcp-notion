@@ -13,7 +13,7 @@ from .database_operations import (
     create_database_service,
 )
 
-from .user_operations import list_users_service, get_user_service
+from .user_operations import list_users_service, get_user_service, get_self_service
 
 __all__ = [
     "search_notion_service",
@@ -27,4 +27,5 @@ __all__ = [
     "create_database_service",
     "list_users_service",
     "get_user_service",
+    "get_self_service",
 ]
