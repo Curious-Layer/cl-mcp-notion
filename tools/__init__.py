@@ -10,6 +10,7 @@ from .database_operations import (
     get_database_service,
     query_data_source_service,
     get_data_source_service,
+    create_database_service,
 )
 
 __all__ = [
@@ -21,4 +22,5 @@ __all__ = [
     "get_database_service",
     "query_data_source_service",
     "get_data_source_service",
+    "create_database_service",
 ]

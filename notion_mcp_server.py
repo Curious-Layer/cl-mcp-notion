@@ -16,6 +16,7 @@ from tools import (
     get_database_service,
     query_data_source_service,
     get_data_source_service,
+    create_database_service,
 )
 
 # Configure logging
@@ -177,6 +178,25 @@ def query_data_source(
 ):
     return query_data_source_service(
         oauth_token, data_source_id, filter, sorts, page_size, start_cursor
+    )
+
+
+@mcp.tool(
+    name="create_database",
+    description="Create a new database as a child of an existing page",
+)
+def create_database(
+    oauth_token: str,
+    parent_id: str,
+    parent_type: str = "page_id",
+    title: str = "Untitled Database",
+    properties: dict | None = None,
+    is_inline: bool = False,
+    icon: dict | None = None,
+    cover: dict | None = None,
+):
+    return create_database_service(
+        oauth_token, parent_id, parent_type, title, properties, is_inline, icon, cover
     )
 
 

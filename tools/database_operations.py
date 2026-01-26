@@ -79,3 +79,54 @@ def query_data_source_service(
         logger.info(f"Query returned {results_count} page(s), has_more={has_more}")
 
     return result
+
+
+def create_database_service(
+    oauth_token: str,
+    parent_id: str,
+    parent_type: str = "page_id",
+    title: str = "Untitled Database",
+    properties: Optional[Dict] = None,
+    data_source_title: Optional[str] = None,
+    is_inline: bool = False,
+    icon: Optional[Dict] = None,
+    cover: Optional[Dict] = None,
+) -> Dict:
+    logger.info(f"[create_database_service] parent_id={parent_id}, title={title}")
+
+    if parent_type != "page_id":
+        logger.error(f"Invalid parent_type: {parent_type}")
+        return {"error": "parent_type must be 'page_id' for databases"}
+
+    if not properties:
+        properties = {"Name": {"title": {}}}
+
+    body = {
+        "parent": {"type": parent_type, parent_type: parent_id},
+        "title": [{"type": "text", "text": {"content": title}}],
+        "initial_data_source": {"properties": properties},
+        "is_inline": is_inline,
+    }
+
+    if data_source_title:
+        body["initial_data_source"]["title"] = [
+            {"type": "text", "text": {"content": data_source_title}}
+        ]
+        logger.info(f"Setting data source title: {data_source_title}")
+
+    if icon:
+        body["icon"] = icon
+        logger.info(f"Setting icon: type={icon.get('type')}")
+
+    if cover:
+        body["cover"] = cover
+        logger.info(f"Setting cover: type={cover.get('type')}")
+
+    result = make_notion_request("POST", "/v1/databases", oauth_token, body=body)
+
+    if "error" in result:
+        logger.error(f"Failed to create database: {result.get('error')}")
+    else:
+        logger.info(f"Successfully created database: {result.get('id')}")
+
+    return result
