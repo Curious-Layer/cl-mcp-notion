@@ -17,7 +17,8 @@ from tools import (
     query_data_source_service,
     get_data_source_service,
     create_database_service,
-    get_users_service,
+    list_users_service,
+    get_user_service,
 )
 
 # Configure logging
@@ -213,7 +214,15 @@ def list_users(
     page_size: int = 100,
     start_cursor: str | None = None,
 ):
-    return get_users_service(oauth_token, page_size, start_cursor)
+    return list_users_service(oauth_token, page_size, start_cursor)
+
+
+@mcp.tool(
+    name="get_user",
+    description="Retrieve a specific user by their ID",
+)
+def get_user(oauth_token: str, user_id: str):
+    return get_user_service(oauth_token, user_id)
 
 
 ########## parsing Argus ##########
