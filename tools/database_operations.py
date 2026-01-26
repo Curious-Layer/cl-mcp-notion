@@ -84,41 +84,38 @@ def query_data_source_service(
 def create_database_service(
     oauth_token: str,
     parent_id: str,
-    parent_type: str = "page_id",
     title: str = "Untitled Database",
+    description: Optional[str] = None,
     properties: Optional[Dict] = None,
-    data_source_title: Optional[str] = None,
     is_inline: bool = False,
     icon: Optional[Dict] = None,
     cover: Optional[Dict] = None,
 ) -> Dict:
     logger.info(f"[create_database_service] parent_id={parent_id}, title={title}")
 
-    if parent_type != "page_id":
-        logger.error(f"Invalid parent_type: {parent_type}")
-        return {"error": "parent_type must be 'page_id' for databases"}
-
     if not properties:
         properties = {"Name": {"title": {}}}
 
+    # converting List to rich text format as per API spec
+    title_rich_text = [{"type": "text", "text": {"content": title}}]
+
     body = {
-        "parent": {"type": parent_type, parent_type: parent_id},
-        "title": [{"type": "text", "text": {"content": title}}],
+        "parent": {"type": "page_id", "page_id": parent_id},
+        "title": title_rich_text,
         "initial_data_source": {"properties": properties},
         "is_inline": is_inline,
     }
 
-    if data_source_title:
-        body["initial_data_source"]["title"] = [
-            {"type": "text", "text": {"content": data_source_title}}
-        ]
-        logger.info(f"Setting data source title: {data_source_title}")
+    # converting string description to rich text format as per API spec
+    if description is not None:
+        body["description"] = [{"type": "text", "text": {"content": description}}]
+        logger.info("Setting database description")
 
-    if icon:
+    if icon is not None:
         body["icon"] = icon
         logger.info(f"Setting icon: type={icon.get('type')}")
 
-    if cover:
+    if cover is not None:
         body["cover"] = cover
         logger.info(f"Setting cover: type={cover.get('type')}")
 
