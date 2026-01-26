@@ -1,19 +1,13 @@
 """
 Stateless MCP Server for Notion API
-
 """
 
 import logging
 import argparse
-from typing import Dict, List
-from typing import Optional
 
-import requests
 from fastmcp import FastMCP
-
-# Notion API configuration
-NOTION_API_BASE = "https://api.notion.com"
-NOTION_VERSION = "2025-09-03"
+from tools.read_operations import search_notion_service, get_page_service
+from tools.write_operations import create_page_service
 
 # Configure logging
 logging.basicConfig(
@@ -23,52 +17,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("notion-mcp-server")
 
-# Create FastMCP instance
+#  FastMCP instance
 mcp = FastMCP("Notion MCP Server")
-
-
-def _get_headers(oauth_token: str) -> Dict[str, str]:
-    """Create headers for Notion API requests - stateless per request"""
-    return {
-        "Authorization": f"Bearer {oauth_token}",
-        "Notion-Version": NOTION_VERSION,
-        "Content-Type": "application/json",
-    }
-
-
-def _make_request(
-    method: str,
-    endpoint: str,
-    oauth_token: str,
-    body: Dict | None = None,
-    params: Dict | None = None,
-) -> Dict:
-    """Generic request handler for Notion API"""
-    headers = _get_headers(oauth_token)
-    url = f"{NOTION_API_BASE}{endpoint}"
-
-    try:
-        response = requests.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=body,
-            params=params,
-        )
-        result = response.json()
-
-        if not (200 <= response.status_code < 300):
-            logger.error(f"Notion API error: {result}")
-            return {
-                "error": result.get("message", "Unknown error"),
-                "code": result.get("code"),
-                "status": response.status_code,
-            }
-        return result
-
-    except Exception as e:
-        logger.error(f"Request error: {e}")
-        return {"error": str(e)}
 
 
 # ============== Read Operations ==============
@@ -84,7 +34,7 @@ def search_notion(
     filter_type: str | None = None,
     page_size: int = 10,
     start_cursor: str | None = None,
-) -> Dict:
+):
     """
     Search Notion pages and databases.
 
@@ -94,47 +44,36 @@ def search_notion(
         filter_type: "page" or "database" (optional)
         page_size: Results per page (max 100)
         start_cursor: Pagination cursor
+
+    Returns:
+        Dictionary with search results including pages/databases that match the query
     """
-    logger.info(f"[search_notion] query='{query}'")
-
-    body = {"query": query, "page_size": min(page_size, 100)}
-
-    if filter_type in ["page", "data_source"]:
-        body["filter"] = {"property": "object", "value": filter_type}
-
-    if start_cursor:
-        body["start_cursor"] = start_cursor
-
-    return _make_request("POST", "/v1/search", oauth_token, body=body)
+    return search_notion_service(
+        oauth_token, query, filter_type, page_size, start_cursor
+    )
 
 
 @mcp.tool(
     name="get_page",
-    description="Retrieve a Notion page by ID with properties adn metadata",
+    description="Retrieve a Notion page by ID with properties and metadata",
 )
-def get_page(oauth_token: str, page_id: str) -> Dict:
+def get_page(oauth_token: str, page_id: str):
     """
     Get the page details by notion page ID with properties and metadata.
+
     Args:
         oauth_token: User's Notion OAuth access token
         page_id: The ID of the page to retrieve
+
     Returns:
-        A dictionary containing the page details or an error message if not page not found.
+        A dictionary containing the page details or an error message if page not found.
     """
-
-    logger.info(f"[get_page] page_id='{page_id}'")
-
-    result = _make_request("GET", f"/v1/pages/{page_id}", oauth_token)
-
-    if "error" in result:
-        logger.error(f"Failed to retrieve page: {page_id}: {result.get('error')}")
-    else:
-        logger.info(f"Successfully retrieved page: {page_id}")
-
-    return result
+    return get_page_service(oauth_token, page_id)
 
 
-############################# Write Operations ################################
+# ============== Write Operations ==============
+
+
 @mcp.tool(
     name="create_page",
     description="Create a new page in a database or under a parent page",
@@ -144,11 +83,11 @@ def create_page(
     parent_id: str,
     parent_type: str = "page_id",
     title: str = "Untitled",
-    properties: Optional[Dict] = None,
-    children: Optional[List] = None,
-    icon: Optional[Dict] = None,
-    cover: Optional[Dict] = None,
-) -> Dict:
+    properties: dict | None = None,
+    children: list | None = None,
+    icon: dict | None = None,
+    cover: dict | None = None,
+):
     """
     Create a new page in a database or under a parent page.
 
@@ -165,52 +104,11 @@ def create_page(
     Returns:
         A dictionary containing the newly created page details or an error message.
     """
-    logger.info(
-        f"[create_page] parent_id={parent_id}, parent_type={parent_type}, title={title}"
+    return create_page_service(
+        oauth_token, parent_id, parent_type, title, properties, children, icon, cover
     )
 
-    if parent_type not in ["page_id", "database_id"]:
-        logger.error(f"Invalid parent_type: {parent_type}")
-        return {"error": "parent_type must be either 'page_id' or 'database_id'"}
 
-    body = {"parent": {parent_type: parent_id, "type": parent_type}}
-
-    if parent_type == "page_id":
-        # When creating under a page, use title property
-        if not properties:
-            properties = {
-                "title": {"title": [{"type": "text", "text": {"content": title}}]}
-            }
-        body["properties"] = properties
-    elif parent_type == "database_id":
-        # When creating in a database, properties are required
-        if not properties:
-            logger.error("properties are required when creating a page in a database")
-            return {
-                "error": "properties are required when parent_type is 'database_id'"
-            }
-        body["properties"] = properties
-
-    if children:
-        body["children"] = children
-
-    if icon:
-        body["icon"] = icon
-
-    if cover:
-        body["cover"] = cover
-
-    result = _make_request("POST", "/v1/pages", oauth_token, body=body)
-
-    if "error" in result:
-        logger.error(f"Failed to create page: {result.get('error')}")
-    else:
-        logger.info(f"Successfully created page: {result.get('id')}")
-
-    return result
-
-
-# Function for parsing cmd-line arguments
 def parse_args():
     parser = argparse.ArgumentParser(description="Notion MCP Server")
     parser.add_argument(

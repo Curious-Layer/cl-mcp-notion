@@ -20,5 +20,5 @@ mcp = "python notion_mcp_server.py"
 notion-oauth = "python get_notion_oauth.py"
 
 ### test commands
-mcp-inspector = "npx @modelcontextprotocol/inspector uv run mcp"
+mcp-inspector = "npx @modelcontextprotocol/inspector"
 
