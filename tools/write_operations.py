@@ -13,10 +13,12 @@ def create_page_service(
     parent_id: str,
     parent_type: str = "page_id",  # "page_id" or "data_source_id"
     title: str = "Untitled",
-    properties: Optional[Dict] = None,  # required when creating a page in a data source
-    children: Optional[List] = None,  # list of child blocks to include in the new page
+    properties: Optional[Dict] = None,
+    children: Optional[List] = None,
     icon: Optional[Dict] = None,
     cover: Optional[Dict] = None,
+    template: Optional[Dict] = None,
+    position: Optional[Dict] = None,
 ) -> Dict:
     logger.info(
         f"[create_page_service] parent_id={parent_id}, parent_type={parent_type}, title={title}"
@@ -34,9 +36,12 @@ def create_page_service(
                 "title": {"title": [{"type": "text", "text": {"content": title}}]}
             }
         body["properties"] = properties
+
     elif parent_type == "data_source_id":
         if not properties:
-            logger.error("properties are required when creating a page in a database")
+            logger.error(
+                "properties are required when creating a page in a data source"
+            )
             return {
                 "error": "properties are required when parent_type is 'data_source_id'"
             }
@@ -44,12 +49,23 @@ def create_page_service(
 
     if children:
         body["children"] = children
+        logger.info(f"Adding {len(children)} child blocks")
 
     if icon:
         body["icon"] = icon
+        logger.info(f"Setting icon: type={icon.get('type')}")
 
     if cover:
         body["cover"] = cover
+        logger.info(f"Setting cover: type={cover.get('type')}")
+
+    if template:
+        body["template"] = template
+        logger.info(f"Setting template: {template.get('type')}")
+
+    if position:
+        body["position"] = position
+        logger.info(f"Setting position: {position.get('type')}")
 
     result = make_notion_request("POST", "/v1/pages", oauth_token, body=body)
 
