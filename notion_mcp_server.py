@@ -15,6 +15,7 @@ from tools import (
     update_page_service,
     get_database_service,
     query_data_source_service,
+    get_data_source_service,
 )
 
 # Configure logging
@@ -152,6 +153,14 @@ def update_page(
 )
 def get_database(oauth_token: str, database_id: str):
     return get_database_service(oauth_token, database_id)
+
+
+@mcp.tool(
+    name="get_data_source",
+    description="Retrieve a data source (database schema/properties) by ID",
+)
+def get_data_source(oauth_token: str, data_source_id: str):
+    return get_data_source_service(oauth_token, data_source_id)
 
 
 @mcp.tool(

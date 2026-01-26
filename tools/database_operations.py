@@ -26,6 +26,24 @@ def get_database_service(oauth_token: str, database_id: str) -> Dict:
     return result
 
 
+def get_data_source_service(oauth_token: str, data_source_id: str) -> Dict:
+    logger.info(f"[get_data_source_service] data_source_id='{data_source_id}'")
+
+    result = make_notion_request(
+        "GET", f"/v1/data_sources/{data_source_id}", oauth_token
+    )
+
+    if "error" in result:
+        logger.error(
+            f"Failed to retrieve data source: {data_source_id}: {result.get('error')}"
+        )
+    else:
+        logger.info(f"Successfully retrieved data source: {data_source_id}")
+        logger.info(f"Properties: {list(result.get('properties', {}).keys())}")
+
+    return result
+
+
 def query_data_source_service(
     oauth_token: str,
     data_source_id: str,
