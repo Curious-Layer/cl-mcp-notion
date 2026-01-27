@@ -3,7 +3,7 @@
 from .read_operations import (
     search_notion_service,
     get_page_service,
-    notion_fetch_service,
+    fetch_page_content_service,
 )
 from .write_operations import create_page_service, update_page_service
 from .database_operations import (
@@ -18,7 +18,7 @@ from .user_operations import list_users_service, get_user_service, get_self_serv
 __all__ = [
     "search_notion_service",
     "get_page_service",
-    "notion_fetch_service",
+    "fetch_page_content_service",
     "create_page_service",
     "update_page_service",
     "get_database_service",

@@ -10,7 +10,7 @@ from fastmcp import FastMCP
 from tools import (
     search_notion_service,
     get_page_service,
-    notion_fetch_service,
+    fetch_page_content_service,
     create_page_service,
     update_page_service,
     get_database_service,
@@ -62,10 +62,10 @@ def get_page(oauth_token: str, page_id: str):
 
 
 @mcp.tool(
-    name="notion_fetch",
+    name="fetch_page_content",
     description="Retrieve a Notion page with its full content including all child blocks and properties",
 )
-def notion_fetch(
+def fetch_page_content(
     oauth_token: str,
     page_id: str,
     include_children: bool = True,
@@ -74,7 +74,7 @@ def notion_fetch(
     page_size: int = 100,
     start_cursor: str | None = None,
 ):
-    return notion_fetch_service(
+    return fetch_page_content_service(
         oauth_token,
         page_id,
         include_children,

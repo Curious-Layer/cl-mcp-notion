@@ -96,8 +96,59 @@ def _fetch_block_children_recursive(
     return all_blocks
 
 
+def _extract_title(page_data: dict) -> str:
+    """Extract the title from page properties."""
+    try:
+        title_property = page_data.get("properties", {}).get("title", {})
+        title_items = title_property.get("title", [])
+
+        if title_items:
+            return "".join(item.get("plain_text", "") for item in title_items)
+        return ""
+    except Exception:
+        return ""
+
+
+def _extract_plain_text(blocks: list) -> str:
+    """Extract plain text content from Notion blocks recursively."""
+    text_parts = []
+
+    for block in blocks:
+        block_type = block.get("type")
+
+        if not block_type:
+            continue
+
+        block_content = block.get(block_type, {})
+        rich_text = block_content.get("rich_text", [])
+
+        for text_item in rich_text:
+            plain_text = text_item.get("plain_text", "")
+            if plain_text:
+                text_parts.append(plain_text)
+
+        if block.get("has_children"):
+            # already-loaded children only
+            children = block.get("children", [])
+            if children:
+                child_text = _extract_plain_text(children)
+                if child_text:
+                    text_parts.append(child_text)
+
+    return "\n".join(text_parts)
+
+
+def _simplify_page_response(page_data: dict) -> dict:
+    return {
+        "page_id": page_data.get("id"),
+        "title": _extract_title(page_data),
+        "content": _extract_plain_text(page_data.get("children", [])),
+        "url": page_data.get("url"),
+    }
+
+
 ############# Notion Fetch Service #############
-def notion_fetch_service(
+def fetch_page_content_service(
     oauth_token: str,
     page_id: str,
     include_children: bool = True,
@@ -144,4 +195,4 @@ def notion_fetch_service(
                 logger.error(f"Failed to fetch children: {children_data.get('error')}")
                 page_data["children_error"] = children_data.get("error")
 
-    return page_data
+    return _simplify_page_response(page_data)
