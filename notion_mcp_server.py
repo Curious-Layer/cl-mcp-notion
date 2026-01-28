@@ -6,7 +6,7 @@ import logging
 import argparse
 from typing import Literal, Dict, Optional
 from fastmcp import FastMCP
-from pydantic import Field, BaseModel
+from pydantic import Field
 
 from tools import (
     search_notion_service,
@@ -21,6 +21,7 @@ from tools import (
     list_users_service,
     get_user_service,
     get_self_service,
+    create_workspace_page_service,
 )
 
 # Configure logging
@@ -107,6 +108,20 @@ def create_page_under_page(
         parent_page_id,
         title,
         position,
+    )
+
+
+@mcp.tool(
+    name="create_workspace_page",
+    description="Create a new page at a workspace level (without parent page)",
+)
+def create_workspace_page(
+    oauth_token: str,
+    title: str | None = "Untitled New page Created",
+):
+    return create_workspace_page_service(
+        oauth_token,
+        title,
     )
 
 

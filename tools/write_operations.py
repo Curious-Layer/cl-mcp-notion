@@ -55,6 +55,22 @@ def create_page_under_page_service(
     return result
 
 
+def create_workspace_page_service(
+    oauth_token: str,
+    title: str = "Untitled",
+) -> Dict:
+    parent = {"type": "workspace", "workspace": True}
+
+    body = _build_create_page_body(
+        parent=parent,
+        title=title,
+    )
+
+    result = make_notion_request("POST", "/v1/pages", oauth_token, body=body)
+
+    return result
+
+
 def update_page_service(
     oauth_token: str,
     page_id: str,
