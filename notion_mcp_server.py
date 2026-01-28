@@ -4,14 +4,15 @@ Stateless MCP Server for Notion API
 
 import logging
 import argparse
-from typing import Literal
+from typing import Literal, Dict, Optional
 from fastmcp import FastMCP
+from pydantic import Field, BaseModel
 
 from tools import (
     search_notion_service,
     get_page_service,
     fetch_page_content_service,
-    create_page_service,
+    create_page_under_page_service,
     update_page_service,
     get_database_service,
     query_data_source_service,
@@ -89,31 +90,22 @@ def fetch_page_content(
 
 
 @mcp.tool(
-    name="create_page",
-    description="Create a new page in a database or under a parent page",
+    name="create_page_under_page",
+    description="Create a new page under a parent page",
 )
-def create_page(
+def create_page_under_page(
     oauth_token: str,
-    parent_id: str,
-    parent_type: Literal["data_source_id", "page_id"] = "page_id",
-    title: str = "Untitled",
-    properties: dict | None = None,  # required for data source
-    children: list | None = None,
-    icon: dict | None = None,
-    cover: dict | None = None,
-    template: dict | None = None,
-    position: dict | None = None,
+    parent_page_id: str,
+    title: str | None = "Untitled New page Created",
+    position: Optional[Dict] | None = Field(
+        default=None,
+        description='Insert postion. strict Format:{"type": "page_end"} or {"type": "page_start"} ',
+    ),
 ):
-    return create_page_service(
+    return create_page_under_page_service(
         oauth_token,
-        parent_id,
-        parent_type,
+        parent_page_id,
         title,
-        properties,
-        children,
-        icon,
-        cover,
-        template,
         position,
     )
 
