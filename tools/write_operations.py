@@ -1,78 +1,56 @@
 """Write operation tools for Notion API"""
 
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from utils import make_notion_request
 
 logger = logging.getLogger("notion-mcp-server")
 
 
-def create_page_service(
-    oauth_token: str,
-    parent_id: str,
-    parent_type: str = "page_id",  # "page_id" or "data_source_id"
-    title: str = "Untitled",
+def _build_create_page_body(
+    *,
+    parent: Dict,
+    title: Optional[str] = None,
     properties: Optional[Dict] = None,
-    children: Optional[List] = None,
-    icon: Optional[Dict] = None,
-    cover: Optional[Dict] = None,
-    template: Optional[Dict] = None,
     position: Optional[Dict] = None,
 ) -> Dict:
-    logger.info(
-        f"[create_page_service] parent_id={parent_id}, parent_type={parent_type}, title={title}"
-    )
+    """
+    validates the notion create page payload.
 
-    if parent_type not in ["page_id", "data_source_id"]:
-        logger.error(f"Invalid parent_type: {parent_type}")
-        return {"error": "parent_type must be either 'page_id' or 'data_source_id'"}
+    """
 
-    body = {"parent": {parent_type: parent_id, "type": parent_type}}
+    # if template and (children or content):
+    #     raise ToolError("children/content cannot be provided when using a template")
 
-    if parent_type == "page_id":
-        if not properties:
-            properties = {
-                "title": {"title": [{"type": "text", "text": {"content": title}}]}
-            }
-        body["properties"] = properties
+    body: Dict = {"parent": parent}
 
-    elif parent_type == "data_source_id":
-        if not properties:
-            logger.error(
-                "properties are required when creating a page in a data source"
-            )
-            return {
-                "error": "properties are required when parent_type is 'data_source_id'"
-            }
-        body["properties"] = properties
-
-    if children:
-        body["children"] = children
-        logger.info(f"Adding {len(children)} child blocks")
-
-    if icon:
-        body["icon"] = icon
-        logger.info(f"Setting icon: type={icon.get('type')}")
-
-    if cover:
-        body["cover"] = cover
-        logger.info(f"Setting cover: type={cover.get('type')}")
-
-    if template:
-        body["template"] = template
-        logger.info(f"Setting template: {template.get('type')}")
+    if title is not None:
+        body["properties"] = {
+            "title": {"title": [{"type": "text", "text": {"content": title}}]}
+        }
 
     if position:
         body["position"] = position
-        logger.info(f"Setting position: {position.get('type')}")
+
+    return body
+
+
+def create_page_under_page_service(
+    oauth_token: str,
+    parent_page_id: str,
+    title: str = "Untitled",
+    position: Optional[Dict] = None,
+) -> Dict:
+    parent = {"page_id": parent_page_id, "type": "page_id"}
+
+    body = _build_create_page_body(
+        parent=parent,
+        title=title,
+        position=position,
+    )
 
     result = make_notion_request("POST", "/v1/pages", oauth_token, body=body)
-
-    if "error" in result:
-        logger.error(f"Failed to create page: {result.get('error')}")
-    else:
-        logger.info(f"Successfully created page: {result.get('id')}")
 
     return result
 
