@@ -26,7 +26,26 @@ def search_notion_service(
     if start_cursor:
         body["start_cursor"] = start_cursor
 
-    return make_notion_request("POST", "/v1/search", oauth_token, body=body)
+    result = make_notion_request("POST", "/v1/search", oauth_token, body=body)
+    pages = []
+    for item in result.get("results", []):
+        title_array = item.get("properties", {}).get("title", {}).get("title", [])
+        title = title_array[0].get("plain_text", "") if title_array else ""
+
+        pages.append(
+            {
+                "id": item.get("id"),
+                "title": title.strip(),
+                "url": item.get("url"),
+                "last_edited_time": item.get("last_edited_time"),
+            }
+        )
+
+    return {
+        "pages": pages,
+        "has_more": result.get("has_more", False),
+        "next_cursor": result.get("next_cursor"),
+    }
 
 
 ############## Get Page Service #############

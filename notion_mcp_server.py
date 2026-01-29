@@ -42,13 +42,19 @@ mcp = FastMCP("Notion MCP Server")
 
 @mcp.tool(
     name="search_notion",
-    description="Search all pages and databases shared with the integration by title",
+    description="Search all pages and databases by title or list all pages  ",
 )
 def search_notion(
     oauth_token: str,
-    query: str = "",
-    filter_type: str | None = None,
-    page_size: int = 10,
+    query: str = Field(
+        default="", description="Search query string, keep it empty to list all pages"
+    ),
+    filter_type: str | None = Field(
+        default=None, description="Filter by 'page' or 'data_source'. "
+    ),
+    page_size: int = Field(
+        default=20, description="Number of pages to return (max 100)"
+    ),
     start_cursor: str | None = None,
 ):
     return search_notion_service(
@@ -289,7 +295,7 @@ def parse_args():
         help="Transport method: 'stdio', 'sse', or 'streamable-http'",
         default="streamable-http",
     )
-    parser.add_argument("--host", help="Host to bind to", default="localhost")
+    parser.add_argument("--host", help="Host to bind to", default="0.0.0.0")
     parser.add_argument("--port", type=int, help="Port to bind to", default=8000)
     return parser.parse_args()
 
