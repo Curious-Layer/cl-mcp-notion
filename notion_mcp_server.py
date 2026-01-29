@@ -4,7 +4,7 @@ Stateless MCP Server for Notion API
 
 import logging
 import argparse
-from typing import Literal, Dict, Optional
+from typing import Dict, Optional, Literal
 from fastmcp import FastMCP
 from pydantic import Field
 
@@ -22,6 +22,7 @@ from tools import (
     get_user_service,
     get_self_service,
     create_workspace_page_service,
+    append_text_block_service,
 )
 
 # Configure logging
@@ -152,6 +153,42 @@ def update_page(
         is_locked,
         template,
         erase_content,
+    )
+
+
+@mcp.tool(
+    name="append_text_block",
+    description="Append a text block to a page ",
+)
+def append_text_block(
+    oauth_token: str,
+    block_id: str = Field(description="The ID could be page ID or parent block ID"),
+    type: Literal[
+        "paragraph",
+        "heading_1",
+        "heading_2",
+        "heading_3",
+        "bulleted_list_item",
+        "numbered_list_item",
+        "to_do",
+        "toggle",
+        "quote",
+        "callout",
+    ] = Field(description="The type of text block to create"),
+    content: str = Field(description="The text content for the block"),
+    checked: Optional[bool] = Field(
+        default=None, description="For to_do blocks only - whether the item is checked"
+    ),
+    color: Optional[str] = Field(
+        default=None,
+        description="text color or background color. available colors : [ 'default', 'gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'red'] background color format : eg. red_background or blue_background ",
+    ),
+    position: Literal["end", "start"] | None = Field(
+        default=None, description="Position to insert the new block; "
+    ),
+):
+    return append_text_block_service(
+        oauth_token, block_id, type, content, checked, color, position
     )
 
 

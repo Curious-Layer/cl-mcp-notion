@@ -8,6 +8,7 @@ from utils import make_notion_request
 logger = logging.getLogger("notion-mcp-server")
 
 
+##### Page Services #####
 def _build_create_page_body(
     *,
     parent: Dict,
@@ -131,5 +132,61 @@ def update_page_service(
         logger.error(f"Failed to update page: {result.get('error')}")
     else:
         logger.info(f"Successfully updated page: {page_id}")
+
+    return result
+
+
+###### Text Block Services #####
+
+
+def append_text_block_service(
+    oauth_token: str,
+    block_id: str,
+    type: str,
+    content: str,
+    checked: Optional[bool] = None,
+    color: Optional[str] = None,
+    position: Optional[str] = None,
+) -> Dict:
+    logger.info(f"[add_text_block_service] block_id='{block_id}', type='{type}'")
+
+    block = {
+        "object": "block",
+        "type": type,
+        type: {
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {"content": content},
+                }
+            ]
+        },
+    }
+
+    # Add checked for to_do blocks
+    if type == "to_do" and checked is not None:
+        block[type]["checked"] = checked
+        logger.info(f"Setting to_do checked={checked}")
+
+    # Add color if specified
+    if color:
+        block[type]["color"] = color
+        logger.info(f"Setting color={color}")
+
+    body = {"children": [block]}
+
+    if position:
+        body["position"] = {"type": position}
+
+        logger.info(f"Setting position={position}")
+
+    result = make_notion_request(
+        "PATCH", f"/v1/blocks/{block_id}/children", oauth_token, body=body
+    )
+
+    if "error" in result:
+        logger.error(f"Failed to add text block: {result.get('error')}")
+    else:
+        logger.info(f"Successfully added {type} block to {block_id}")
 
     return result

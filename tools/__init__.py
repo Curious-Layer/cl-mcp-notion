@@ -9,6 +9,7 @@ from .write_operations import (
     create_page_under_page_service,
     update_page_service,
     create_workspace_page_service,
+    append_text_block_service,
 )
 from .database_operations import (
     get_database_service,
@@ -33,4 +34,5 @@ __all__ = [
     "get_user_service",
     "get_self_service",
     "create_workspace_page_service",
+    "append_text_block_service",
 ]
