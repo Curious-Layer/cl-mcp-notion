@@ -37,3 +37,6 @@ node_modules/
 mcp_server/logs/
 mcp_server/static/
 mcp_server/templates/
+
+# Ignore system files
+get_notion_oauth.py

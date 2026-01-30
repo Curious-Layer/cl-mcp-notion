@@ -12,7 +12,7 @@ logger = logging.getLogger("notion-mcp-server")
 
 
 def get_headers(oauth_token: str) -> Dict[str, str]:
-    """Create headers for Notion API requests - stateless per request"""
+    """headers for Notion API requests - stateless per request"""
     return {
         "Authorization": f"Bearer {oauth_token}",
         "Notion-Version": NOTION_VERSION,
@@ -27,7 +27,7 @@ def make_notion_request(
     body: Optional[Dict] = None,
     params: Optional[Dict] = None,
 ) -> Dict:
-    """Generic request handler for Notion API"""
+    """request handler for Notion API"""
     headers = get_headers(oauth_token)
     url = f"{NOTION_API_BASE}{endpoint}"
 

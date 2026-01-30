@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-"""Notion OAuth Token Generator for testing public integrations"""
-
 import os
 import sys
 import base64
