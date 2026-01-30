@@ -40,3 +40,5 @@ mcp_server/templates/
 
 # Ignore system files
 get_notion_oauth.py
+
+notion_tool.md
