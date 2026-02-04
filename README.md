@@ -57,45 +57,6 @@ You need to create a Notion integration with OAuth support:
    - Insert content
    - Read user information
 
-### 4. Configure Your MCP Client
-
-#### For Claude Desktop (stdio mode - default)
-
-Add this to your Claude Desktop MCP settings file:
-
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`  
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`  
-**Linux**: `~/.config/Claude/claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "notion": {
-      "command": "python",
-      "args": [
-        "D:\\Code\\Curious Layer\\notion_mcp_server\\notion_mcp_server.py"
-      ],
-      "cwd": "D:\\Code\\Curious Layer\\notion_mcp_server"
-    }
-  }
-}
-```
-
-#### For HTTP/SSE Transport
-
-You can run the server with different transport modes:
-
-**Streamable HTTP** (default):
-
-```bash
-python notion_mcp_server.py --transport streamable-http --host 0.0.0.0 --port 8080
-```
-
-**stdio**:
-
-```bash
-python notion_mcp_server.py --transport stdio
-```
 
 ## Usage Examples
 
