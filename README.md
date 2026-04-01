@@ -73,7 +73,7 @@ Add this to your Claude Desktop MCP settings file:
     "notion": {
       "command": "python",
       "args": [
-        "D:\\Code\\Curious Layer\\notion_mcp_server\\notion_mcp_server.py"
+        "D:\\Code\\Curious Layer\\notion_mcp_server\\server.py"
       ],
       "cwd": "D:\\Code\\Curious Layer\\notion_mcp_server"
     }
@@ -88,13 +88,13 @@ You can run the server with different transport modes:
 **Streamable HTTP** (default):
 
 ```bash
-python notion_mcp_server.py --transport streamable-http --host 0.0.0.0 --port 8080
+python server.py --transport streamable-http --host 0.0.0.0 --port 8080
 ```
 
 **stdio**:
 
 ```bash
-python notion_mcp_server.py --transport stdio
+python server.py --transport stdio
 ```
 
 ## Usage Examples
