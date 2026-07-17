@@ -18,7 +18,7 @@ from ..schemas import (
     QueryDataSourceData,
     QueryDataSourceResult,
 )
-from ._helpers import _err, _handle_request_exc, _upstream_err
+from ._helpers import _handle_request_exc, _upstream_err
 
 logger = logging.getLogger("notion-mcp.tools.databases")
 
