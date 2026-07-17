@@ -61,8 +61,13 @@ def register_pages_write_tools(mcp: FastMCP) -> None:
         annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True),
     )
     def create_page_under_page(
-        parent_page_id: str,
-        title: str | None = "Untitled New page Created",
+        parent_page_id: str = Field(
+            description="The ID of the parent page this new page will be created under."
+        ),
+        title: str | None = Field(
+            default="Untitled New page Created",
+            description="The title for the new page. Defaults to 'Untitled New page Created' if omitted.",
+        ),
         position: dict | None = Field(
             default=None,
             description='Insert postion. strict Format:{"type": "page_end"} or {"type": "page_start"} ',
@@ -89,7 +94,10 @@ def register_pages_write_tools(mcp: FastMCP) -> None:
         annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True),
     )
     def create_workspace_page(
-        title: str | None = "Untitled New page Created",
+        title: str | None = Field(
+            default="Untitled New page Created",
+            description="The title for the new page. Defaults to 'Untitled New page Created' if omitted.",
+        ),
     ) -> CreateWorkspacePageResult:
         tlog = ToolLogger(logger, "create_workspace_page")
         try:
@@ -108,19 +116,50 @@ def register_pages_write_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         name="update_page",
-        description="Update an existing Notion page's properties and metadata.",
+        description=(
+            "Update an existing Notion page's properties and metadata. "
+            "Providing `properties`, `icon`, `cover`, or other fields replaces the corresponding "
+            "current values rather than merging with them — the original state is not stored by "
+            "the API after the call. Call get_page first to see current property values before "
+            "updating. The response includes both the before and after state so you have a full "
+            "record of what changed."
+        ),
         annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True),
     )
     def update_page(
-        page_id: str,
-        properties: dict | None = None,
-        icon: dict | None = None,
-        cover: dict | None = None,
-        archived: bool | None = None,
-        in_trash: bool | None = None,
-        is_locked: bool | None = None,
-        template: dict | None = None,
-        erase_content: bool | None = None,
+        page_id: str = Field(description="The ID of the Notion page to update."),
+        properties: dict | None = Field(
+            default=None,
+            description="A dict of Notion page property updates keyed by property name; replaces the corresponding existing property values rather than merging with them. Omit to leave properties unchanged.",
+        ),
+        icon: dict | None = Field(
+            default=None,
+            description="A Notion file, emoji, or external object to set as the page icon. Omit to leave the icon unchanged.",
+        ),
+        cover: dict | None = Field(
+            default=None,
+            description="A Notion file or external object to set as the page cover image. Omit to leave the cover unchanged.",
+        ),
+        archived: bool | None = Field(
+            default=None,
+            description="Whether to archive (true) or restore (false) the page. Omit to leave archival state unchanged.",
+        ),
+        in_trash: bool | None = Field(
+            default=None,
+            description="Whether to move the page to (true) or restore it from (false) the trash. Omit to leave trash state unchanged.",
+        ),
+        is_locked: bool | None = Field(
+            default=None,
+            description="Whether to lock (true) or unlock (false) the page to prevent further edits. Omit to leave the lock state unchanged.",
+        ),
+        template: dict | None = Field(
+            default=None,
+            description="A Notion page template object to reapply to the page. Omit to leave the current template unchanged.",
+        ),
+        erase_content: bool | None = Field(
+            default=None,
+            description="Whether to clear the page's existing block content before applying the update. Omit to leave existing content in place.",
+        ),
     ) -> UpdatePageResult:
         tlog = ToolLogger(logger, "update_page")
         try:
