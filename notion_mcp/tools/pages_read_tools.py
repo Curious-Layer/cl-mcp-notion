@@ -18,7 +18,7 @@ from ..schemas import (
     SearchNotionResult,
     SearchResultItem,
 )
-from ._helpers import _err, _handle_request_exc, _upstream_err
+from ._helpers import _handle_request_exc, _upstream_err
 
 logger = logging.getLogger("notion-mcp.tools.pages_read")
 
@@ -57,7 +57,7 @@ def _fetch_block_children_recursive(
 
         if not (200 <= status < 300):
             logger.error(
-                "Failed to fetch children for block %s: %s", block_id, data
+                "Failed to fetch children for block %s: HTTP %s", block_id, status
             )
             break
 
@@ -292,7 +292,9 @@ def register_pages_read_tools(mcp: FastMCP) -> None:
                         children_count = len(page_data["children"])
                         logger.info("Retrieved %d child blocks", children_count)
                     else:
-                        logger.error("Failed to fetch children: %s", children_data)
+                        logger.error(
+                            "Failed to fetch children: HTTP %s", children_status
+                        )
 
             tlog.success()
             return FetchPageContentResult(
