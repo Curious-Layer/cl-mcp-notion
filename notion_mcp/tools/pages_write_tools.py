@@ -30,15 +30,9 @@ def _build_create_page_body(
     *,
     parent: dict,
     title: str | None = None,
-    properties: dict | None = None,
     position: dict | None = None,
 ) -> dict:
-    """Build a Notion /v1/pages create-page request body.
-
-    Ported verbatim from the legacy tools/write_operations.py
-    ._build_create_page_body — note `properties` is accepted but not
-    folded into the body, matching the legacy behavior exactly.
-    """
+    """Build a Notion /v1/pages create-page request body."""
 
     body: dict = {"parent": parent}
 

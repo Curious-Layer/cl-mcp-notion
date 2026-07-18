@@ -1,6 +1,7 @@
 """Pages read group: search_notion, get_page, fetch_page_content."""
 
 import logging
+from typing import Literal
 
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -139,7 +140,7 @@ def register_pages_read_tools(mcp: FastMCP) -> None:
         query: str = Field(
             default="", description="Search query string, keep it empty to list all pages"
         ),
-        filter_type: str | None = Field(
+        filter_type: Literal["page", "data_source"] | None = Field(
             default=None, description="Filter by 'page' or 'data_source'. "
         ),
         page_size: int = Field(
@@ -153,7 +154,7 @@ def register_pages_read_tools(mcp: FastMCP) -> None:
         tlog = ToolLogger(logger, "search_notion")
         try:
             body: dict = {"query": query, "page_size": min(page_size, 100)}
-            if filter_type in ("page", "data_source"):
+            if filter_type is not None:
                 body["filter"] = {"property": "object", "value": filter_type}
             if start_cursor:
                 body["start_cursor"] = start_cursor
