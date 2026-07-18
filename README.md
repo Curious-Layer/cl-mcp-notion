@@ -8,8 +8,8 @@ A Model Context Protocol (MCP) server that exposes Notion's API for managing pag
 The Notion MCP Server provides a complete interface to your Notion workspace:
 
 - Search, read, and write pages with full block-level content control
-- Create and query databases with filters, sorts, and pagination
-- Manage workspace users and bot identity
+- Create and query databases (data sources) with filters, sorts, and pagination
+- Manage workspace users and retrieve bot/workspace identity
 
 Perfect for:
 
@@ -20,28 +20,33 @@ Perfect for:
 
 ## Tools
 
-### Read Operations
+### Pages — Read
 
 <details>
-<summary><code>search_notion</code> — Search pages and databases</summary>
+<summary><code>search_notion</code> — Search pages and databases by title</summary>
 
-Searches all pages and databases by title, or lists all workspace content when no query is provided.
+Search all pages and databases by title or list all pages
 
 **Inputs:**
 ```
-- `query` (string, optional) — Search query string; leave empty to list all pages (default: "")
-- `filter_type` (string, optional) — Filter results by type: page or data_source
-- `page_size` (int, optional) — Number of results to return (max: 100, default: 20)
-- `start_cursor` (string, optional) — Pagination cursor from a previous response
+- `query` (string, optional, default: "") — Search query string, keep it empty to list all pages
+- `filter_type` (string, optional) — Filter by 'page' or 'data_source'.
+- `page_size` (int, optional, default: 20) — Number of pages to return (max 100)
+- `start_cursor` (string, optional) — Cursor from a previous response to page through results.
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "results": [{ "id": "page-id", "object": "page", "properties": {...} }, ...],
-  "next_cursor": "cursor-string",
-  "has_more": true
+  pages: {
+    id: string | null;
+    title: string;
+    url: string | null;
+    last_edited_time: string | null;
+  }[];
+  has_more: boolean;
+  next_cursor: string | null;
 }
 ```
 
@@ -49,24 +54,31 @@ Searches all pages and databases by title, or lists all workspace content when n
 
 
 <details>
-<summary><code>get_page</code> — Get a page by ID</summary>
+<summary><code>get_page</code> — Retrieve a page by ID</summary>
 
-Retrieves a Notion page with its properties and metadata.
+Retrieve a Notion page by ID with properties and metadata
 
 **Inputs:**
 ```
-- `page_id` (string, required) — The Notion page ID
+- `page_id` (string, required) — Notion page ID (UUID) to retrieve.
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "id": "page-id",
-  "object": "page",
-  "properties": { "title": { "title": [{ "plain_text": "Page Title" }] } },
-  "parent": { "type": "workspace" },
-  ...
+  id: string | null;
+  object: string | null;
+  url: string | null;
+  public_url: string | null;
+  created_time: string | null;
+  last_edited_time: string | null;
+  archived: boolean | null;
+  in_trash: boolean | null;
+  parent: object | null;
+  properties: object | null;
+  icon: object | null;
+  cover: object | null;
 }
 ```
 
@@ -74,57 +86,67 @@ Retrieves a Notion page with its properties and metadata.
 
 
 <details>
-<summary><code>fetch_page_content</code> — Get a page with full block content</summary>
+<summary><code>fetch_page_content</code> — Retrieve a page with full block content</summary>
 
-Retrieves a Notion page along with all its child blocks. Supports recursive fetching up to a configurable depth.
+Retrieve a Notion page with its full content including all child blocks and properties
 
 **Inputs:**
 ```
-- `page_id` (string, required) — The Notion page ID
-- `include_children` (bool, optional) — Fetch child blocks (default: true)
-- `recursive` (bool, optional) — Recursively fetch nested blocks (default: false)
-- `max_depth` (int, optional) — Maximum nesting depth for recursive fetch (default: 3)
-- `page_size` (int, optional) — Number of blocks per page (default: 100)
-- `start_cursor` (string, optional) — Pagination cursor for blocks
+- `page_id` (string, required) — Notion page ID (UUID) to fetch content for.
+- `include_children` (bool, optional, default: true) — Whether to fetch and include the page's child blocks.
+- `recursive` (bool, optional, default: false) — Recursively fetch nested children of child blocks, up to max_depth.
+- `max_depth` (int, optional, default: 3) — Maximum recursion depth when recursive=True.
+- `page_size` (int, optional, default: 100) — Number of child blocks to fetch per page when recursive=False (max 100).
+- `start_cursor` (string, optional) — Cursor from a previous response to page through child blocks (non-recursive only).
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "id": "page-id",
-  "properties": {...},
-  "children": [
-    { "type": "paragraph", "paragraph": { "rich_text": [{ "plain_text": "Hello" }] } }
-  ]
+  page_id: string | null;
+  title: string;
+  content: string;
+  url: string | null;
+  has_more_children: boolean | null;
+  next_cursor: string | null;
+  children_count: number | null;
 }
 ```
 
 </details>
 
 
-### Write Operations
+### Pages — Write
 
 <details>
-<summary><code>create_page_under_page</code> — Create a page under a parent page</summary>
+<summary><code>create_page_under_page</code> — Create a new page under a parent page</summary>
 
-Creates a new child page under an existing parent page.
+Create a new page under a parent page
 
 **Inputs:**
 ```
-- `parent_page_id` (string, required) — ID of the parent page
-- `title` (string, optional) — Title of the new page (default: "Untitled New page Created")
-- `position` (object, optional) — Insert position: {"type": "page_end"} or {"type": "page_start"}
+- `parent_page_id` (string, required) — The ID of the parent page this new page will be created under.
+- `title` (string, optional, default: "Untitled New page Created") — The title for the new page. Defaults to 'Untitled New page Created' if omitted.
+- `position` (object, optional) — Insert postion. strict Format:{"type": "page_end"} or {"type": "page_start"}
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "id": "new-page-id",
-  "object": "page",
-  "url": "https://www.notion.so/new-page-id",
-  ...
+  id: string | null;
+  object: string | null;
+  url: string | null;
+  public_url: string | null;
+  created_time: string | null;
+  last_edited_time: string | null;
+  archived: boolean | null;
+  in_trash: boolean | null;
+  parent: object | null;
+  properties: object | null;
+  icon: object | null;
+  cover: object | null;
 }
 ```
 
@@ -134,21 +156,29 @@ Creates a new child page under an existing parent page.
 <details>
 <summary><code>create_workspace_page</code> — Create a top-level workspace page</summary>
 
-Creates a new page at the workspace level, not under any parent page.
+Create a new page at a workspace level (without parent page)
 
 **Inputs:**
 ```
-- `title` (string, optional) — Title of the new page (default: "Untitled New page Created")
+- `title` (string, optional, default: "Untitled New page Created") — The title for the new page. Defaults to 'Untitled New page Created' if omitted.
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "id": "new-page-id",
-  "object": "page",
-  "url": "https://www.notion.so/new-page-id",
-  ...
+  id: string | null;
+  object: string | null;
+  url: string | null;
+  public_url: string | null;
+  created_time: string | null;
+  last_edited_time: string | null;
+  archived: boolean | null;
+  in_trash: boolean | null;
+  parent: object | null;
+  properties: object | null;
+  icon: object | null;
+  cover: object | null;
 }
 ```
 
@@ -158,29 +188,53 @@ Creates a new page at the workspace level, not under any parent page.
 <details>
 <summary><code>update_page</code> — Update a page's properties and metadata</summary>
 
-Updates properties, icon, cover, archive status, or lock state of an existing page.
+Update an existing Notion page's properties and metadata. Providing `properties`, `icon`, `cover`, or other fields replaces the corresponding current values rather than merging with them — the original state is not stored by the API after the call. Call get_page first to see current property values before updating. The response includes both the before and after state so you have a full record of what changed.
 
 **Inputs:**
 ```
-- `page_id` (string, required) — The Notion page ID
-- `properties` (object, optional) — Page properties to update (schema depends on page type)
-- `icon` (object, optional) — Page icon (emoji or external URL)
-- `cover` (object, optional) — Page cover image (external URL)
-- `archived` (bool, optional) — Archive or unarchive the page
-- `in_trash` (bool, optional) — Move to trash or restore from trash
-- `is_locked` (bool, optional) — Lock or unlock the page
-- `template` (object, optional) — Template settings
-- `erase_content` (bool, optional) — Erase all page content
+- `page_id` (string, required) — The ID of the Notion page to update.
+- `properties` (object, optional) — A dict of Notion page property updates keyed by property name; replaces the corresponding existing property values rather than merging with them. Omit to leave properties unchanged.
+- `icon` (object, optional) — A Notion file, emoji, or external object to set as the page icon. Omit to leave the icon unchanged.
+- `cover` (object, optional) — A Notion file or external object to set as the page cover image. Omit to leave the cover unchanged.
+- `archived` (bool, optional) — Whether to archive (true) or restore (false) the page. Omit to leave archival state unchanged.
+- `in_trash` (bool, optional) — Whether to move the page to (true) or restore it from (false) the trash. Omit to leave trash state unchanged.
+- `is_locked` (bool, optional) — Whether to lock (true) or unlock (false) the page to prevent further edits. Omit to leave the lock state unchanged.
+- `template` (object, optional) — A Notion page template object to reapply to the page. Omit to leave the current template unchanged.
+- `erase_content` (bool, optional) — Whether to clear the page's existing block content before applying the update. Omit to leave existing content in place.
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "id": "page-id",
-  "archived": false,
-  "properties": {...},
-  ...
+  before: {
+    id: string | null;
+    object: string | null;
+    url: string | null;
+    public_url: string | null;
+    created_time: string | null;
+    last_edited_time: string | null;
+    archived: boolean | null;
+    in_trash: boolean | null;
+    parent: object | null;
+    properties: object | null;
+    icon: object | null;
+    cover: object | null;
+  };
+  after: {
+    id: string | null;
+    object: string | null;
+    url: string | null;
+    public_url: string | null;
+    created_time: string | null;
+    last_edited_time: string | null;
+    archived: boolean | null;
+    in_trash: boolean | null;
+    parent: object | null;
+    properties: object | null;
+    icon: object | null;
+    cover: object | null;
+  };
 }
 ```
 
@@ -190,74 +244,59 @@ Updates properties, icon, cover, archive status, or lock state of an existing pa
 <details>
 <summary><code>append_text_block</code> — Append a text block to a page</summary>
 
-Adds a text block (paragraph, heading, list item, etc.) to an existing page or block.
+Append a text block to a page
 
 **Inputs:**
 ```
-- `block_id` (string, required) — Page ID or parent block ID to append to
-- `type` (string, required) — Block type: paragraph, heading_1, heading_2, heading_3, bulleted_list_item, numbered_list_item, to_do, toggle, quote, or callout
-- `content` (string, required) — Text content for the block
-- `checked` (bool, optional) — For to_do blocks only — whether the item is checked
-- `color` (string, optional) — Text or background color (e.g., red, blue_background)
-- `position` (string, optional) — Insertion position: start or end
+- `block_id` (string, required) — The ID could be page ID or parent block ID
+- `type` (string, required, one of: paragraph | heading_1 | heading_2 | heading_3 | bulleted_list_item | numbered_list_item | to_do | toggle | quote | callout) — The type of text block to create
+- `content` (string, required) — The text content for the block
+- `checked` (bool, optional) — For to_do blocks only - whether the item is checked
+- `color` (string, optional) — text color or background color. available colors : [ 'default', 'gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'red'] background color format : eg. red_background or blue_background
+- `position` (string, optional, one of: end | start) — Position to insert the new block;
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "results": [{ "type": "paragraph", "id": "block-id", ... }]
+  blocks: {
+    id: string | null;
+    type: string | null;
+    created_time: string | null;
+  }[];
 }
 ```
 
 </details>
 
 
-### Database Operations
+### Databases
 
 <details>
-<summary><code>get_database</code> — Get a database by ID</summary>
+<summary><code>get_database</code> — Retrieve a database by ID</summary>
 
-Retrieves a Notion database object with its title, parent, and data sources.
+Retrieve a database object by ID with title, parent, and data sources
 
 **Inputs:**
 ```
-- `database_id` (string, required) — The Notion database ID
+- `database_id` (string, required) — The ID of the database to retrieve
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "id": "database-id",
-  "title": [{ "plain_text": "My Database" }],
-  "properties": {...},
-  ...
-}
-```
-
-</details>
-
-
-<details>
-<summary><code>get_data_source</code> — Get a data source schema</summary>
-
-Retrieves the schema and properties of a database (data source) by ID.
-
-**Inputs:**
-```
-- `data_source_id` (string, required) — The data source (database) ID
-```
-
-**Output:**
-
-```json
-{
-  "id": "database-id",
-  "properties": {
-    "Name": { "type": "title" },
-    "Status": { "type": "select", "select": { "options": [...] } }
-  }
+  id: string | null;
+  title: object[] | null;
+  parent: object | null;
+  data_sources: object[] | null;
+  url: string | null;
+  archived: boolean | null;
+  created_time: string | null;
+  last_edited_time: string | null;
+  icon: object | null;
+  cover: object | null;
 }
 ```
 
@@ -265,26 +304,49 @@ Retrieves the schema and properties of a database (data source) by ID.
 
 
 <details>
-<summary><code>query_data_source</code> — Query a database with filters and sorts</summary>
+<summary><code>get_data_source</code> — Retrieve a data source schema</summary>
 
-Queries a database to retrieve pages matching optional filters and sort criteria.
+Retrieve a data source (database schema/properties) by ID
 
 **Inputs:**
 ```
-- `data_source_id` (string, required) — The data source (database) ID to query
-- `filter` (object, optional) — Notion filter object to narrow results
-- `sorts` (list, optional) — List of sort objects to order results
-- `page_size` (int, optional) — Number of results per page (max: 100, default: 100)
-- `start_cursor` (string, optional) — Pagination cursor from a previous response
+- `data_source_id` (string, required) — The ID of the data source to retrieve
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "results": [{ "id": "page-id", "properties": {...} }, ...],
-  "next_cursor": "cursor-string",
-  "has_more": false
+  id: string | null;
+  properties: object | null;
+  parent: object | null;
+}
+```
+
+</details>
+
+
+<details>
+<summary><code>query_data_source</code> — Query a data source with filters and sorts</summary>
+
+Query a data source to get pages with optional filtering and sorting
+
+**Inputs:**
+```
+- `data_source_id` (string, required) — The ID of the data source to query
+- `filter` (object, optional) — Notion filter object to restrict which pages are returned
+- `sorts` (list, optional) — List of Notion sort objects controlling result order
+- `page_size` (int, optional, default: 100) — Maximum number of results per page (silently capped at 100)
+- `start_cursor` (string, optional) — Cursor from a previous response's next_cursor to page through results
+```
+
+**Output `data` schema:**
+
+```typescript
+{
+  results: object[];
+  has_more: boolean;
+  next_cursor: string | null;
 }
 ```
 
@@ -294,52 +356,66 @@ Queries a database to retrieve pages matching optional filters and sort criteria
 <details>
 <summary><code>create_database</code> — Create a new database</summary>
 
-Creates a new database as a child of an existing page, with optional properties, icon, and cover.
+Create a new database as a child of an existing page
 
 **Inputs:**
 ```
-- `parent_id` (string, required) — ID of the parent page to create the database under
-- `title` (string, optional) — Database title (default: "Untitled Database")
-- `description` (string, optional) — Database description
-- `properties` (object, optional) — Database property schema definition
-- `is_inline` (bool, optional) — Create as inline database (default: false)
-- `icon` (object, optional) — Database icon (emoji or external URL)
-- `cover` (object, optional) — Database cover image
+- `parent_id` (string, required) — The ID of the parent page to create the database under
+- `title` (string, optional, default: "Untitled Database") — Title of the new database
+- `description` (string, optional) — Plain-text description of the database
+- `properties` (object, optional) — Database schema properties keyed by column name (defaults to a single 'Name' title property)
+- `is_inline` (bool, optional, default: false) — Whether the database should render inline within its parent page
+- `icon` (object, optional) — Icon object to set on the database
+- `cover` (object, optional) — Cover object to set on the database
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "id": "database-id",
-  "title": [{ "plain_text": "My Database" }],
-  "url": "https://www.notion.so/database-id",
-  ...
+  id: string | null;
+  title: object[] | null;
+  parent: object | null;
+  data_sources: object[] | null;
+  url: string | null;
+  archived: boolean | null;
+  created_time: string | null;
+  last_edited_time: string | null;
+  icon: object | null;
+  cover: object | null;
 }
 ```
 
 </details>
 
 
-### User Operations
+### Users
 
 <details>
 <summary><code>list_users</code> — List workspace users</summary>
 
-Lists all users in the workspace. Guest users are excluded.
+List all users in the workspace (guests not included)
 
 **Inputs:**
 ```
-- `page_size` (int, optional) — Number of users per page (max: 100, default: 100)
-- `start_cursor` (string, optional) — Pagination cursor from a previous response
+- `page_size` (int, optional, default: 100) — Maximum number of users to return per page (values above 100 are clamped).
+- `start_cursor` (string, optional) — Cursor from a previous response's next_cursor, used to page through results.
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "results": [{ "id": "user-id", "name": "Jane Doe", "type": "person", ... }],
-  "has_more": false
+  results: {
+    id: string | null;
+    name: string | null;
+    avatar_url: string | null;
+    type: string | null;
+    person: object | null;
+    bot: object | null;
+  }[];
+  has_more: boolean;
+  next_cursor: string | null;
 }
 ```
 
@@ -347,23 +423,25 @@ Lists all users in the workspace. Guest users are excluded.
 
 
 <details>
-<summary><code>get_user</code> — Get a specific user</summary>
+<summary><code>get_user</code> — Retrieve a specific user</summary>
 
-Returns information about a specific workspace user by their ID.
+Retrieve a specific user by their ID
 
 **Inputs:**
 ```
-- `user_id` (string, required) — The Notion user ID
+- `user_id` (string, required) — ID of the user to retrieve.
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "id": "user-id",
-  "name": "Jane Doe",
-  "type": "person",
-  "person": { "email": "jane@example.com" }
+  id: string | null;
+  name: string | null;
+  avatar_url: string | null;
+  type: string | null;
+  person: object | null;
+  bot: object | null;
 }
 ```
 
@@ -371,23 +449,28 @@ Returns information about a specific workspace user by their ID.
 
 
 <details>
-<summary><code>get_self</code> — Get bot user info</summary>
+<summary><code>get_self</code> — Retrieve the bot user for your token</summary>
 
-Returns information about the bot associated with the current API token, including owner and workspace details.
+Retrieve the bot user associated with your API token, including owner and workspace info
 
 **Inputs:**
 ```
 None
 ```
 
-**Output:**
+**Output `data` schema:**
 
-```json
+```typescript
 {
-  "id": "bot-user-id",
-  "name": "My Integration",
-  "type": "bot",
-  "bot": { "owner": { "type": "workspace" }, "workspace_name": "My Workspace" }
+  id: string | null;
+  name: string | null;
+  avatar_url: string | null;
+  type: string | null;
+  person: object | null;
+  bot: object | null;
+  owner: object | null;
+  workspace_name: string | null;
+  workspace_limits: object | null;
 }
 ```
 
@@ -397,51 +480,69 @@ None
 ## API Parameters Reference
 
 <details>
-<summary><strong>Pagination</strong></summary>
+<summary><strong>Response Envelope</strong></summary>
 
-List and query tools support cursor-based pagination:
+Every tool returns the same top-level envelope. Only `data` varies per tool.
 
-- `page_size` — Number of results per request (max: 100)
-- `start_cursor` — Cursor value from a previous response's `next_cursor` field; omit for the first page
+```json
+// Success
+{
+  "success": true,
+  "statusCode": 200,
+  "retriable": false,
+  "retry_after_seconds": null,
+  "error": null,
+  "data": { ... }
+}
 
-</details>
-
-<details>
-<summary><strong>Block Types for append_text_block</strong></summary>
-
-Available `type` values:
-
-- `paragraph` — Standard text block
-- `heading_1`, `heading_2`, `heading_3` — Headings of different sizes
-- `bulleted_list_item` — Bullet point
-- `numbered_list_item` — Numbered list item
-- `to_do` — Checkbox item (use `checked` param)
-- `toggle` — Collapsible toggle block
-- `quote` — Block quote
-- `callout` — Highlighted callout box
-
-</details>
-
-<details>
-<summary><strong>Color Options for append_text_block</strong></summary>
-
-Text colors: `default`, `gray`, `brown`, `orange`, `yellow`, `green`, `blue`, `purple`, `pink`, `red`
-
-Background colors: append `_background` (e.g., `red_background`, `blue_background`)
-
-</details>
-
-<details>
-<summary><strong>Notion ID Format</strong></summary>
-
-Notion IDs are UUIDs and can be found in the page URL:
-
-```
-https://www.notion.so/workspace/My-Page-<page-id>
-Example page_id: 8f9b3c2d-1a2b-3c4d-5e6f-7a8b9c0d1e2f
+// Error
+{
+  "success": false,
+  "statusCode": 400,
+  "retriable": false,
+  "retry_after_seconds": null,
+  "error": { "code": "VALIDATION_ERROR", "message": "At least one update parameter must be provided", "details": {} },
+  "data": null
+}
 ```
 
-Dashes are optional — both formats work with the API.
+- `retriable` — `true` when it is safe to retry (rate limit, network error, 503). `false` for validation and auth errors.
+- `retry_after_seconds` — seconds to wait before retrying; present only when `retriable` is `true` and the upstream specifies a delay.
+- `error.code` — machine-readable string: `VALIDATION_ERROR`, `AUTH_ERROR`, `UPSTREAM_ERROR`, `SERVER_ERROR`.
+
+</details>
+
+<details>
+<summary><strong>Common Parameters</strong></summary>
+
+- `page_size` — Maximum number of results per page. Accepted by `search_notion`, `fetch_page_content`, `query_data_source`, and `list_users`; each tool silently caps it at 100.
+- `start_cursor` — Cursor value from a previous response's `next_cursor` field, used to page through results. Omit for the first page.
+- `filter` — Restricts which results are returned. Shape differs by tool: `search_notion` takes `filter_type` ('page' or 'data_source'), while `query_data_source` takes a full Notion filter object.
+
+</details>
+
+<details>
+<summary><strong>Resource Formats</strong></summary>
+
+**Notion ID:**
+
+```
+UUID, dashes optional
+Example: 8f9b3c2d-1a2b-3c4d-5e6f-7a8b9c0d1e2f
+```
+
+**Block Types (`append_text_block`):**
+
+```
+paragraph | heading_1 | heading_2 | heading_3 | bulleted_list_item | numbered_list_item | to_do | toggle | quote | callout
+```
+
+**Colors (`append_text_block`):**
+
+```
+default | gray | brown | orange | yellow | green | blue | purple | pink | red
+Background variant: append "_background", e.g. red_background, blue_background
+```
 
 </details>
 
@@ -451,10 +552,10 @@ Dashes are optional — both formats work with the API.
 <details>
 <summary><strong>Missing or Invalid Headers</strong></summary>
 
-- **Cause:** OAuth token not provided in request headers or incorrect format
+- **Cause:** OAuth access token not provided in request headers or incorrect format
 - **Solution:**
-  1. Verify `Authorization: Bearer YOUR_TOKEN` and `X-Mewcp-Credential-Id: CREDENTIAL-ID` headers are present
-  2. Check your Notion OAuth credential is active in your MewCP account
+  1. Verify `Authorization: Bearer YOUR_ACCESS_TOKEN` and `X-Mewcp-Credential-Id: CREDENTIAL-ID` headers are present
+  2. Check the OAuth token has not expired — reconnect your Notion account in your MewCP account if needed
 
 </details>
 
@@ -475,7 +576,7 @@ Dashes are optional — both formats work with the API.
 - **Cause:** No Notion credential linked to your account
 - **Solution:**
   1. Go to **Credentials** in your MewCP dashboard
-  2. Connect your Notion account via OAuth
+  2. Connect your Notion account (OAuth)
   3. Retry the request with the correct `X-Mewcp-Credential-Id` header
 
 </details>
@@ -487,7 +588,7 @@ Dashes are optional — both formats work with the API.
 - **Solution:**
   1. Validate JSON syntax before sending
   2. Ensure all required tool parameters are included
-  3. Check that filter/sort objects match Notion's expected schema format
+  3. Check parameter types match expected values (e.g. `filter` and `sorts` must match Notion's expected object schema)
 
 </details>
 
@@ -507,17 +608,21 @@ Dashes are optional — both formats work with the API.
 
 - **Cause:** Upstream Notion API returned an error
 - **Solution:**
-  1. Check Notion service status at [Notion Status](https://status.notion.so)
+  1. Check Notion service status at [Notion Status Page](https://status.notion.so)
   2. Verify your integration has access to the target page or database (share it with the integration in Notion)
-  3. Review the error message returned in the response for specific details
+  3. Review the error message for specific details
 
 </details>
 
 ---
 
-### Resources
+<details>
+<summary><strong>Resources</strong></summary>
 
 - **[Notion API Documentation](https://developers.notion.com)** — Official API reference
 - **[Notion API Reference](https://developers.notion.com/reference)** — Complete endpoint reference
 - **[FastMCP Docs](https://gofastmcp.com/v2/getting-started/welcome)** — FastMCP specification
 - **[FastMCP Credentials](https://pypi.org/project/fastmcp-credentials/)** — FastMCP Credentials package for credential handling
+
+
+</details>
